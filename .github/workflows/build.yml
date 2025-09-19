@@ -7,50 +7,40 @@ on:
     branches: [ "main" ]
 
 jobs:
-  build-linux-x86_64:
-    name: Build for Linux (x86_64)
-    runs-on: ubuntu-latest
+  build:
+    name: Build for ${{ matrix.name }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - name: Linux x86_64
+            os: ubuntu-latest
+            arch: x86_64
+            artifact_name: dashboard-linux-x86_64
+
+          - name: macOS Intel
+            os: macos-13
+            arch: x86_64
+            artifact_name: dashboard-macos-x86_64
+
+          - name: macOS ARM
+            os: macos-14
+            arch: arm64
+            artifact_name: dashboard-macos-arm64
+
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Install system dependencies
+      - name: Install dependencies (Linux)
+        if: runner.os == 'Linux'
         run: |
           sudo apt-get update
           sudo apt-get install -y build-essential cmake pkg-config libyaml-cpp-dev
 
-      - name: Clone and Install FTXUI
-        run: |
-          git clone https://github.com/ArthurSonzogni/FTXUI.git /tmp/FTXUI
-          cd /tmp/FTXUI
-          mkdir build && cd build
-          cmake ..
-          sudo make install
-
-      - name: Configure and Build Project
-        run: |
-          mkdir build
-          cd build
-          cmake ..
-          make
-
-      - name: Upload Artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: dashboard-linux-x86_64
-          path: build/dashboard
-
-  build-macos:
-    name: Build for macOS (${{ matrix.arch }})
-    runs-on: macos-latest
-    strategy:
-      matrix:
-        arch: [x86_64, arm64]
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
-
-      - name: Install system dependencies
+      - name: Install dependencies (macOS)
+        if: runner.os == 'macOS'
         run: brew install yaml-cpp pkg-config
 
       - name: Clone and Build FTXUI
@@ -58,20 +48,28 @@ jobs:
           git clone https://github.com/ArthurSonzogni/FTXUI.git /tmp/FTXUI
           cd /tmp/FTXUI
           mkdir build && cd build
-          cmake .. -DCMAKE_OSX_ARCHITECTURES=${{ matrix.arch }}
+          if [[ "${{ runner.os }}" == "macOS" ]]; then
+            cmake .. -DCMAKE_OSX_ARCHITECTURES=${{ matrix.arch }}
+          else
+            cmake ..
+          fi
           make
 
       - name: Configure and Build Project
         run: |
           mkdir build
           cd build
-          cmake .. -DCMAKE_OSX_ARCHITECTURES=${{ matrix.arch }} -DCMAKE_PREFIX_PATH=/tmp/FTXUI
+          if [[ "${{ runner.os }}" == "macOS" ]]; then
+            cmake .. -DCMAKE_OSX_ARCHITECTURES=${{ matrix.arch }} -DCMAKE_PREFIX_PATH=/tmp/FTXUI
+          else
+            cmake .. -DCMAKE_PREFIX_PATH=/tmp/FTXUI
+          fi
           make
 
       - name: Upload Artifact
         uses: actions/upload-artifact@v4
         with:
-          name: dashboard-macos-${{ matrix.arch }}
+          name: ${{ matrix.artifact_name }}
           path: build/dashboard
 
   build-linux-arm64:
