@@ -9,10 +9,29 @@ on:
 jobs:
   build:
     name: Build ${{ matrix.os }}
-    runs-on: ${{ matrix.os }}
+    runs-on: ${{ matrix.runner }}
     strategy:
       matrix:
-        os: [ubuntu-latest, macos-14, macos-13]  # Linux x64, macOS ARM, macOS Intel
+        include:
+          # 🔹 Linux x86_64
+          - os: ubuntu-x86_64
+            runner: ubuntu-latest
+            arch: x86_64
+
+          # 🔹 Linux ARM64 (cross-compilación)
+          - os: ubuntu-arm64
+            runner: ubuntu-latest
+            arch: aarch64
+
+          # 🔹 macOS ARM (Apple Silicon)
+          - os: macos-14
+            runner: macos-14
+            arch: arm64
+
+          # 🔹 macOS Intel
+          - os: macos-13
+            runner: macos-13
+            arch: x86_64
 
     steps:
     - name: Checkout repository
@@ -22,7 +41,13 @@ jobs:
       run: |
         if [[ "$RUNNER_OS" == "Linux" ]]; then
           sudo apt-get update
-          sudo apt-get install -y build-essential cmake pkg-config libyaml-cpp-dev
+          if [[ "${{ matrix.arch }}" == "aarch64" ]]; then
+            # Cross toolchain para ARM64
+            sudo apt-get install -y build-essential cmake pkg-config libyaml-cpp-dev \
+                                    gcc-aarch64-linux-gnu g++-aarch64-linux-gnu
+          else
+            sudo apt-get install -y build-essential cmake pkg-config libyaml-cpp-dev
+          fi
         elif [[ "$RUNNER_OS" == "macOS" && "${{ matrix.os }}" == "macos-13" ]]; then
           brew update
           brew install cmake pkg-config yaml-cpp
