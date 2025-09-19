@@ -12,7 +12,7 @@ jobs:
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
-        os: [macos-13]  # Linux x64, macOS ARM, macOS Intel
+        os: [macos-14, macos-13]  # Linux x64, macOS ARM, macOS Intel
 
     steps:
     - name: Checkout repository
