@@ -14,7 +14,7 @@ DEST_DIR="opt/software"
 EXECUTABLE_NAME="dashboard"
 
 # 1. Obtener el repositorio actual (ej. "owner/repo")
-
+#REPO=CPCReady/dashboard
 REPO=$(gh repo view --json nameWithOwner -q .nameWithOwner)
 echo $REPO
 if [ -z "$REPO" ]; then
